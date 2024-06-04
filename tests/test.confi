@@ -1,0 +1,41 @@
+section ServerConfiguration {
+    parameter Hostname {
+        value = "example.com"
+        description = "The hostname of the server"
+    }
+
+    parameter Port {
+        value = "8080"
+        description = "The port number to listen on"
+    }
+
+    section DatabaseConfiguration {
+        parameter DBHost {
+            value = "localhost"
+            description = "The hostname of the database server"
+        }
+
+        parameter DBPort {
+            value = "3306"
+            description = "The port number of the database server"
+        }
+    }
+
+    parameter AllowedIPs {
+        value = ["192.168.1.1", "192.168.1.2"]
+        description = "List of allowed IP addresses"
+    }
+}
+
+section LoggingConfiguration {
+    parameter LogLevel {
+        value = "INFO"
+        description = "The log level for the application"
+    }
+
+    parameter LogFile {
+        value = "/var/log/app.log"
+        description = "The path to the log file"
+    }
+}
+
