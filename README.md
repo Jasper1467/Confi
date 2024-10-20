@@ -16,7 +16,7 @@ Sections are used to group configuration settings. Syntax:
 
 ```confi
 section <SectionName> {
-// Configuration settings go here
+    // Configuration settings go here
 }
 ```
 
@@ -24,11 +24,12 @@ section <SectionName> {
 
 Parameters define individual configuration settings within a section. Syntax:
 
+```confi
 parameter <ParameterName> {
-value = <Value>
-description = <Description>
+    value = <Value>
+    description = <Description>
 }
-
+```
 
 ### Example
 
