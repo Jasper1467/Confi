@@ -2,144 +2,141 @@
 
 #include "Lexer.hpp"
 
-struct ValidationRule_t {
-  std::unordered_map<std::string, std::variant<std::string, int>> m_mapRules;
+struct Parameter_t
+{
+    std::string m_szName;
+    std::variant<std::string, int, std::vector<std::string>> m_varValue;
+    std::string m_szDescription;
 };
 
-struct Parameter_t {
-  std::string m_strName;
-  std::variant<std::string, int, std::vector<std::string>> m_varValue;
-  std::string m_strDescription;
-  ValidationRule_t m_tValidation;
+struct Section_t
+{
+    std::string m_szName;
+    std::vector<Parameter_t> m_vecParameters;
+    std::vector<Section_t> m_vecSections;
 };
 
-struct Section_t {
-  std::string m_strName;
-  std::vector<Parameter_t> m_vecParameters;
-  std::vector<Section_t> m_vecSections;
-};
-
-class CParser {
+class CParser
+{
 public:
-  explicit CParser(CLexer &lexer) : m_lexer(lexer) {
-    m_tCurrentToken = m_lexer.nextToken();
-  }
-
-  Section_t parseSection() {
-    expectToken(TOKEN_SECTION_e);
-    std::string strSectionName = expectToken(TOKEN_IDENTIFIER_e).strValue;
-    expectToken(TOKEN_LBRACE_e);
-
-    Section_t tSection;
-    tSection.m_strName = strSectionName;
-
-    while (m_tCurrentToken.eType != TOKEN_RBRACE_e) {
-      if (m_tCurrentToken.eType == TOKEN_PARAMETER_e) {
-        tSection.m_vecParameters.push_back(parseParameter());
-      } else if (m_tCurrentToken.eType == TOKEN_SECTION_e) {
-        tSection.m_vecSections.push_back(parseSection());
-      } else {
-        // Skip unexpected tokens until a parameter or section token is found
-        while (m_tCurrentToken.eType != TOKEN_PARAMETER_e &&
-               m_tCurrentToken.eType != TOKEN_SECTION_e &&
-               m_tCurrentToken.eType != TOKEN_RBRACE_e) {
-          m_tCurrentToken = m_lexer.nextToken();
-        }
-        if (m_tCurrentToken.eType == TOKEN_PARAMETER_e ||
-            m_tCurrentToken.eType == TOKEN_SECTION_e) {
-          // Continue parsing parameters or sections
-          continue;
-        } else {
-          throw std::runtime_error("Unexpected token: " +
-                                   m_tCurrentToken.strValue);
-        }
-      }
+    explicit CParser(CLexer& lexer) : m_lexer(lexer)
+    {
+        m_CurrentToken = m_lexer.NextToken();
     }
-    expectToken(TOKEN_RBRACE_e);
 
-    return tSection;
-  }
+    Section_t ParseSection()
+    {
+        ExpectToken(TOKEN_SECTION_e);
+        std::string szSectionName = ExpectToken(TOKEN_IDENTIFIER_e).m_szValue;
+        ExpectToken(TOKEN_LBRACE_e);
 
-  std::vector<Section_t> parse() {
-    std::vector<Section_t> vecSections;
-    while (m_tCurrentToken.eType != TOKEN_END_e) {
-      vecSections.push_back(parseSection());
+        Section_t tSection;
+        tSection.m_szName = szSectionName;
+
+        while (m_CurrentToken.m_eType != TOKEN_RBRACE_e)
+        {
+            if (m_CurrentToken.m_eType == TOKEN_PARAMETER_e)
+            {
+                tSection.m_vecParameters.push_back(ParseParameter());
+            }
+            else if (m_CurrentToken.m_eType == TOKEN_SECTION_e)
+            {
+                tSection.m_vecSections.push_back(ParseSection());
+            }
+            else
+            {
+                // Skip unexpected tokens until a parameter or section token is found
+                while (m_CurrentToken.m_eType != TOKEN_PARAMETER_e && m_CurrentToken.m_eType != TOKEN_SECTION_e &&
+                       m_CurrentToken.m_eType != TOKEN_RBRACE_e)
+                {
+                    m_CurrentToken = m_lexer.NextToken();
+                }
+                if (m_CurrentToken.m_eType == TOKEN_PARAMETER_e || m_CurrentToken.m_eType == TOKEN_SECTION_e)
+                {
+                    // Continue parsing parameters or sections
+                    continue;
+                }
+                else
+                {
+                    throw std::runtime_error("Unexpected token: " + m_CurrentToken.m_szValue);
+                }
+            }
+        }
+        ExpectToken(TOKEN_RBRACE_e);
+
+        return tSection;
     }
-    return vecSections;
-  }
+
+    std::vector<Section_t> Parse()
+    {
+        std::vector<Section_t> vecSections;
+        while (m_CurrentToken.m_eType != TOKEN_END_e)
+        {
+            vecSections.push_back(ParseSection());
+        }
+        return vecSections;
+    }
 
 private:
-  Token_t expectToken(TokenType_e eType) {
-    if (m_tCurrentToken.eType != eType) {
-      throw std::runtime_error("Unexpected token: " + m_tCurrentToken.strValue);
-    }
-    Token_t tToken = m_tCurrentToken;
-    m_tCurrentToken = m_lexer.nextToken();
-    return tToken;
-  }
-
-  Parameter_t parseParameter() {
-    expectToken(TOKEN_PARAMETER_e);
-    std::string strParamName = expectToken(TOKEN_IDENTIFIER_e).strValue;
-    expectToken(TOKEN_LBRACE_e);
-
-    Parameter_t tParameter;
-    tParameter.m_strName = strParamName;
-
-    while (m_tCurrentToken.eType != TOKEN_RBRACE_e) {
-      std::string strAttribute = expectToken(TOKEN_IDENTIFIER_e).strValue;
-      expectToken(TOKEN_EQUAL_e);
-
-      if (strAttribute == "value") {
-        tParameter.m_varValue = parseValue();
-
-      } else if (strAttribute == "description") {
-        tParameter.m_strDescription =
-            expectToken(TOKEN_STRING_LITERAL_e).strValue;
-      } /*else if (strAttribute == "validation")
-      {
-        tParameter.m_tValidation = expectToken(TOKEN_STRING_LITERAL_e).strValue;
-      }*/
-      else {
-        ValidationRule_t tValidation;
-        if (m_tCurrentToken.eType == TOKEN_STRING_LITERAL_e) {
-          tValidation.m_mapRules[strAttribute] =
-              expectToken(TOKEN_STRING_LITERAL_e).strValue;
-        } else if (m_tCurrentToken.eType == TOKEN_INTEGER_LITERAL_e) {
-          tValidation.m_mapRules[strAttribute] = std::to_string(
-              std::stoi(expectToken(TOKEN_INTEGER_LITERAL_e).strValue));
-        } else {
-          throw std::runtime_error("Unexpected token in validation rule");
+    Token_t ExpectToken(TokenType_e eType)
+    {
+        if (m_CurrentToken.m_eType != eType)
+        {
+            throw std::runtime_error("Unexpected token: " + m_CurrentToken.m_szValue);
         }
-        tParameter.m_tValidation = tValidation;
-      }
+        Token_t tToken = m_CurrentToken;
+        m_CurrentToken = m_lexer.NextToken();
+        return tToken;
     }
-    expectToken(TOKEN_RBRACE_e);
 
-    return tParameter;
-  }
+    Parameter_t ParseParameter()
+    {
+        ExpectToken(TOKEN_PARAMETER_e);
+        std::string szParamName = ExpectToken(TOKEN_IDENTIFIER_e).m_szValue;
+        ExpectToken(TOKEN_LBRACE_e);
 
-  std::variant<std::string, int, std::vector<std::string>> parseValue() {
-    if (m_tCurrentToken.eType == TOKEN_STRING_LITERAL_e) {
-      return expectToken(TOKEN_STRING_LITERAL_e).strValue;
-    } else if (m_tCurrentToken.eType == TOKEN_INTEGER_LITERAL_e) {
-      return std::stoi(expectToken(TOKEN_INTEGER_LITERAL_e).strValue);
-    } else if (m_tCurrentToken.eType == TOKEN_LBRACKET_e) {
-      std::vector<std::string> vecArrayValues;
-      expectToken(TOKEN_LBRACKET_e);
-      while (m_tCurrentToken.eType != TOKEN_RBRACKET_e) {
-        vecArrayValues.push_back(expectToken(TOKEN_STRING_LITERAL_e).strValue);
-        if (m_tCurrentToken.eType == TOKEN_COMMA_e) {
-          expectToken(TOKEN_COMMA_e);
+        Parameter_t Parameter;
+        Parameter.m_szName = szParamName;
+
+        while (m_CurrentToken.m_eType != TOKEN_RBRACE_e)
+        {
+            std::string szAttribute = ExpectToken(TOKEN_IDENTIFIER_e).m_szValue;
+            ExpectToken(TOKEN_EQUAL_e);
+
+            if (szAttribute == "value")
+                Parameter.m_varValue = ParseValue();
+            else if (szAttribute == "description")
+                Parameter.m_szDescription = ExpectToken(TOKEN_STRING_LITERAL_e).m_szValue;
         }
-      }
-      expectToken(TOKEN_RBRACKET_e);
-      return vecArrayValues;
-    } else {
-      throw std::runtime_error("Unexpected token in value");
-    }
-  }
 
-  CLexer &m_lexer;
-  Token_t m_tCurrentToken;
+        ExpectToken(TOKEN_RBRACE_e);
+        return Parameter;
+    }
+
+    std::variant<std::string, int, std::vector<std::string>> ParseValue()
+    {
+        if (m_CurrentToken.m_eType == TOKEN_STRING_LITERAL_e)
+            return ExpectToken(TOKEN_STRING_LITERAL_e).m_szValue;
+        else if (m_CurrentToken.m_eType == TOKEN_INTEGER_LITERAL_e)
+            return std::stoi(ExpectToken(TOKEN_INTEGER_LITERAL_e).m_szValue);
+        else if (m_CurrentToken.m_eType == TOKEN_LBRACKET_e)
+        {
+            std::vector<std::string> vecArrayValues;
+            ExpectToken(TOKEN_LBRACKET_e);
+            while (m_CurrentToken.m_eType != TOKEN_RBRACKET_e)
+            {
+                vecArrayValues.push_back(ExpectToken(TOKEN_STRING_LITERAL_e).m_szValue);
+                if (m_CurrentToken.m_eType == TOKEN_COMMA_e)
+                    ExpectToken(TOKEN_COMMA_e);
+            }
+
+            ExpectToken(TOKEN_RBRACKET_e);
+            return vecArrayValues;
+        }
+        else
+            throw std::runtime_error("Unexpected token in value");
+    }
+
+    CLexer& m_lexer;
+    Token_t m_CurrentToken;
 };

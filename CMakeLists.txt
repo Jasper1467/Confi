@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
-project(confi)
+
+project(confi LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -20,7 +21,7 @@ set(HEADERS
 )
 
 # Add library target for lexer and parser
-add_library(confi_lib ${HEADERS})
+add_library(confi_lib STATIC ${HEADERS} src/Confi.cpp)
 
 # Add executable target
 add_executable(confi ${SOURCES})
